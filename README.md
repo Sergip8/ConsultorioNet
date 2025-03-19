@@ -11,24 +11,42 @@ Under construction
 - **Reports and Analytics**: Generate reports to track clinic performance.
 - **User Roles**: Support for admin, doctors, and staff roles with specific permissions.
 
-## Installation
+## Running the Azure Function Project
 
-1. Clone the repository:
+To run the Azure Function project locally, follow these steps:
+
+1. **Install Prerequisites**:
+    - Install [Azure Functions Core Tools](https://learn.microsoft.com/en-us/azure/azure-functions/functions-run-local).
+    - Install the [.NET SDK](https://dotnet.microsoft.com/download).
+
+2. **Clone the Repository**:
     ```bash
-    git clone https://github.com/yourusername/ConsultorioNet.git
-    ```
-2. Navigate to the project directory:
-    ```bash
+    git clone https://github.com/your-repo/ConsultorioNet.git
     cd ConsultorioNet
     ```
-3. Install dependencies:
+
+3. **Navigate to the Azure Function Project**:
     ```bash
-    npm install
+    cd path/to/azure-function-project
     ```
-4. Start the development server:
+
+4. **Restore Dependencies**:
     ```bash
-    npm start
+    dotnet restore
     ```
+
+5. **Run the Azure Function Locally**:
+    ```bash
+    func start
+    ```
+
+6. **Test the Function**:
+    - Use tools like [Postman](https://www.postman.com/) or [cURL](https://curl.se/) to test the endpoints.
+    - Ensure the local URL (e.g., `http://localhost:7071`) is used.
+
+7. **Deploy to Azure** (Optional):
+    - Follow the [Azure Functions deployment guide](https://learn.microsoft.com/en-us/azure/azure-functions/functions-deployment-technologies) to deploy your function to Azure.
+
 
 ## Technologies Used
 
