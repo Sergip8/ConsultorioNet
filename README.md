@@ -1,7 +1,7 @@
 # ConsultorioNet
 
 ConsultorioNet is a web-based application designed to manage and streamline operations for medical or dental clinics. It provides tools for scheduling appointments, managing patient records, and tracking clinic activities.
-
+Under construction
 ## Features
 
 - **Appointment Scheduling**: Easily book, reschedule, or cancel appointments.
@@ -39,22 +39,6 @@ ConsultorioNet is a web-based application designed to manage and streamline oper
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
-
-1. Fork the repository.
-2. Create a new branch:
-    ```bash
-    git checkout -b feature-name
-    ```
-3. Commit your changes:
-    ```bash
-    git commit -m "Add feature-name"
-    ```
-4. Push to the branch:
-    ```bash
-    git push origin feature-name
-    ```
-5. Open a pull request.
 
 ## License
 
