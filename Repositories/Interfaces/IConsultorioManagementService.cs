@@ -9,9 +9,10 @@ public interface IConsultorioManagementService
 {
    
     
-    Task<List<UserBasicInfoRequest>> GetPatientByIdOrEmail(UserSearchParams userParams);
+    Task<PaginatedResult<UserBasicInfoRequest>> GetPatientByIdOrEmail(UserSearchParams userParams);
     Task<ResponseResult> GetPatientByIdOrEmail(PatientCreateRequest patientCreate);
     Task<PatientAllInfo> GetPatientAllInfo(long patientId);
     Task<ResponseResult> UpdatePatient(PatientUpdateRequest personalInfo);
     Task<ResponseResult> InsertPatient(PatientCreateRequest patient);
+     Task<PatientAllInfo> GetPatientAllInfoByPatientId(long patientId);
 }

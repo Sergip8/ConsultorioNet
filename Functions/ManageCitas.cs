@@ -1,4 +1,5 @@
 
+using Consultorio.Function.Models.Request;
 using Consultorio.Function.Repositories.Interfaces;
 using ConsultorioNet.Models.Request;
 using ConsultorioNet.Models.Response;
@@ -37,10 +38,7 @@ public class ManageCitas
                 return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
             }
 
-            if (!FunctionsHelpers.UserHasPatientRole(user))
-            {
-                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
-            }
+          
             var roles = FunctionsHelpers.UserRoles(user);
 
             if(roles == null){
@@ -50,8 +48,13 @@ public class ManageCitas
                 citas = await _consultorioCitasService.GetCitasByPatientId(userId);
 
             }
-            if(roles.Contains("DOCTOR")){
+            else if(roles.Contains("DOCTOR")){
                 citas = await _consultorioCitasService.GetCitasByDoctorId(userId);
+            }
+            else{
+             
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Patient or Doctor can access")) { StatusCode = StatusCodes.Status403Forbidden };
+            
             }
             if (citas == null || !citas.Any())
             {
@@ -78,7 +81,7 @@ public class ManageCitas
                 return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
             }
 
-            if (!FunctionsHelpers.UserHasPatientRole(user))
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["ADMIN"]))
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
             }
@@ -96,6 +99,80 @@ public class ManageCitas
             }
 
             return new OkObjectResult(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred.");
+            return new ObjectResult(FunctionsHelpers.CreateErrorResponse("An unexpected error occurred.")) { StatusCode = StatusCodes.Status500InternalServerError };
+        }
+    }
+
+[Function("CreatePatientCita")]
+        public async Task<IActionResult> CreatePatientCita([HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequest req, FunctionContext context)
+    {
+        try
+        {
+            var user = FunctionsHelpers.GetUserFromContext(context);
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
+            }
+
+            if (!FunctionsHelpers.UserHasPatientRole(user))
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
+            }
+
+            var cita = await FunctionsHelpers.DeserializeRequestBody<CitaPatientCreateRequest>(req);
+            if (cita == null )
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Patients not found.")) { StatusCode = StatusCodes.Status404NotFound };
+            }
+            var response = await _consultorioCitasService.CreatePatientCita(cita);
+            _logger.LogInformation(response.ToString());    
+            if (response == null)
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Personal info not exists")) { StatusCode = StatusCodes.Status404NotFound };
+            }
+
+            return new OkObjectResult(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred.");
+            return new ObjectResult(FunctionsHelpers.CreateErrorResponse("An unexpected error occurred.")) { StatusCode = StatusCodes.Status500InternalServerError };
+        }
+    }
+
+     [Function("GetPaginatedAppointments")]
+        public async Task<IActionResult> getPaginatedPatient([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req, FunctionContext context)
+    {
+        try
+        {
+            var user = FunctionsHelpers.GetUserFromContext(context);
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
+            }
+
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["ADMIN"]))
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
+            }
+
+            var userParamsRequest = await FunctionsHelpers.DeserializeRequestBody<UserSearchParams>(req);
+            if (userParamsRequest == null)
+            {
+                return new BadRequestObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid request body."));
+            }
+
+            var patients = await _consultorioCitasService.GetCitasPaginated(userParamsRequest);
+            if (patients == null || !patients.Data.Any())
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Patients not found.")) { StatusCode = StatusCodes.Status404NotFound };
+            }
+
+            return new OkObjectResult(patients);
         }
         catch (Exception ex)
         {

@@ -24,7 +24,7 @@ namespace Consultorio.Function
 
     [Function("UpdatePersonalInfo")]
     public async Task<IActionResult> UpdatePersonalInfo(
-        [HttpTrigger(AuthorizationLevel.Function, "put", Route = null)] HttpRequest req, FunctionContext context)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = null)] HttpRequest req, FunctionContext context)
     {
         
          try

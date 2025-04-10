@@ -34,7 +34,7 @@ namespace Consultorio.Function
                 return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
             }
 
-            if (!FunctionsHelpers.UserHasPatientRole(user))
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["ADMIN", "EMPLOYEE"]))
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
             }
@@ -46,7 +46,7 @@ namespace Consultorio.Function
             }
 
             var patients = await _consultorioManagementService.GetPatientByIdOrEmail(userParamsRequest);
-            if (patients == null || !patients.Any())
+            if (patients == null || !patients.Data.Any())
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Patients not found.")) { StatusCode = StatusCodes.Status404NotFound };
             }
@@ -70,7 +70,7 @@ namespace Consultorio.Function
                 return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
             }
 
-            if (!FunctionsHelpers.UserHasPatientRole(user))
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["PATIENT",]))
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
             }
@@ -91,6 +91,37 @@ namespace Consultorio.Function
         }
     }
     
+    [Function("GetPatientInfoByPatientId")]
+        public async Task<IActionResult> getPatientInfoByPatientId([HttpTrigger(AuthorizationLevel.Anonymous, "get", Route ="GetPatientInfoByPatientId/{id}")] FunctionContext context, long id)
+    {
+        try
+        {
+            var user = FunctionsHelpers.GetUserFromContext(context);
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
+            }
+
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["ADMIN"]))
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
+            }
+
+
+            var patients = await _consultorioManagementService.GetPatientAllInfoByPatientId(id);
+            if (patients == null)
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Patients not found.")) { StatusCode = StatusCodes.Status404NotFound };
+            }
+
+            return new OkObjectResult(patients);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred.");
+            return new ObjectResult(FunctionsHelpers.CreateErrorResponse("An unexpected error occurred.")) { StatusCode = StatusCodes.Status500InternalServerError };
+        }
+    }
  [Function("UpdatePatient")]
     public async Task<IActionResult> UpdatePatient(
         [HttpTrigger(AuthorizationLevel.Function, "put", Route = null)] HttpRequest req, FunctionContext context)
@@ -132,7 +163,7 @@ namespace Consultorio.Function
 
     [Function("CreatePatient")]
     public async Task<IActionResult> CreatePatient(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, FunctionContext context)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req, FunctionContext context)
     {
         
          try

@@ -12,5 +12,6 @@ public interface IConsultorioUsersService
     
     Task<ResponseResult> Register(RegisterRequest register);
     Task<LoginResponse> Login(LoginRequest login);
+    Task<PaginatedResult<UserResponse>> GetPaginatedUsers(UserSearchParams userSearch);
 
 }

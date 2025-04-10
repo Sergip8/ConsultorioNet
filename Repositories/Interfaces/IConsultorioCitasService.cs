@@ -1,6 +1,7 @@
 
 
 using Consultorio.Function.Models;
+using Consultorio.Function.Models.Request;
 using ConsultorioNet.Models.Request;
 using ConsultorioNet.Models.Response;
 
@@ -13,6 +14,6 @@ public interface IConsultorioCitasService
 
     Task<List<CitasDoctorResponse>> GetCitasByDoctorId(long doctor_id);
     Task<ResponseResult> CreateCita(CitaCreateRequest citaCreate);
-
-
+    Task<ResponseResult> CreatePatientCita(CitaPatientCreateRequest citaCreate);
+    Task<PaginatedResult<CitaResponse>> GetCitasPaginated(UserSearchParams userParams);
 }

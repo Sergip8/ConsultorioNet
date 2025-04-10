@@ -55,6 +55,42 @@ public class ConsultorioManagementService : IConsultorioManagementService
                 db.Close();
         }
     }
+     public Task<PatientAllInfo> GetPatientAllInfoByPatientId(long patientId)
+    {
+        using IDbConnection db = _context.CreateConnection();
+        try
+        {
+            var sql = @"
+            SELECT p.*, ip.*, im.*
+            FROM pacientes p
+            LEFT JOIN informacion_personal ip ON p.informacion_personal_id = ip.id
+            LEFT JOIN informacion_medica_paciente im ON p.informacion_medica_id = im.id
+            WHERE p.id = @patient_id";
+
+            var result = db.Query<PatientAllInfo, PersonalInfoRequest, PatientMedicalInfoRequest, PatientAllInfo>(
+                sql,
+                (patient, personalInfo, medicalInfo) =>
+                {
+                    patient.Informacion_personal = personalInfo?.Id != null ? personalInfo : null ;
+                    patient.Informacion_medica = medicalInfo?.Id != null ? medicalInfo : null;
+                    return patient;
+                },
+                param: new {patient_id = patientId},
+                splitOn: "Id,Id"
+            ).FirstOrDefault();
+
+            return Task.FromResult(result);
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error retrieving patient information for ID: {patientId}", ex);
+        }
+        finally
+        {
+            if (db.State == ConnectionState.Open)
+                db.Close();
+        }
+    }
 
       public async Task<ResponseResult> InsertPatient(PatientCreateRequest patient)
     {
@@ -100,11 +136,12 @@ public class ConsultorioManagementService : IConsultorioManagementService
         }
     }
 
-    public async Task<List<UserBasicInfoRequest>> GetPatientByIdOrEmail(UserSearchParams userParams)
+    public async Task<PaginatedResult<UserBasicInfoRequest>> GetPatientByIdOrEmail(UserSearchParams userParams)
     {
         using IDbConnection db = _context.CreateConnection();
         try
         {
+             var result = new PaginatedResult<UserBasicInfoRequest>();
             if (db.State == ConnectionState.Closed)
                 db.Open();
             var parameters = new DynamicParameters();
@@ -113,12 +150,16 @@ public class ConsultorioManagementService : IConsultorioManagementService
             parameters.Add("p_page_size", userParams.Size);
             parameters.Add("p_order_by", userParams.OrderCriteria);
             parameters.Add("p_order_direction", userParams.OrderDirection);
-            var result = await db.QueryAsync<UserBasicInfoRequest>(
+            var multi = await db.QueryMultipleAsync(
                 "sp_get_paginated_patients",
                 parameters,
                 commandType: CommandType.StoredProcedure
             );
-            return result.AsList();
+             result.Data = multi.Read<UserBasicInfoRequest>().ToList();
+
+            // Leer el segundo resultado: el conteo total de registros
+            result.TotalRecords = multi.Read<int>().Single();
+            return result;
         }
         catch (Exception ex)
         {

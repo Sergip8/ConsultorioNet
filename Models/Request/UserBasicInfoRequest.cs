@@ -9,6 +9,14 @@ namespace ConsultorioNet.Models.Request
         public string Identity_number { get; set; }
         public string Tel { get; set; }
         public string Email { get; set; }
+        public int? Count { get; set; }
+
         public DateTime CreatedAt { get; set; }
     }
+
+    public class PaginatedResult<T>
+{
+    public List<T> Data { get; set; } // Lista paginada de pacientes
+    public int TotalRecords { get; set; } // Conteo total de registros
+}
 }

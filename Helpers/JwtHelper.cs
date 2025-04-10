@@ -17,7 +17,7 @@ namespace EventManagementSystem.Helpers
         /// <returns>A string representation of the generated JWT token.</returns>
         /// 
         
-        public static string GenerateJwt(this JwtSettings jwtSettings, long id, string role)
+        public static string GenerateJwt(this JwtSettings jwtSettings, long id, string role, string email)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(jwtSettings.SecretKey);
@@ -27,7 +27,9 @@ namespace EventManagementSystem.Helpers
                 Subject = new ClaimsIdentity(new[]
                 {
                     new Claim(ClaimTypes.Name, id.ToString()),
-                    new Claim(ClaimTypes.Role, role)
+                    new Claim(ClaimTypes.Role, role),
+                    new Claim(ClaimTypes.Email, email)
+
                 }),
                 Expires = DateTime.UtcNow.AddMinutes(jwtSettings.TokenExpirationInMinutes),
                 Issuer = jwtSettings.Issuer,

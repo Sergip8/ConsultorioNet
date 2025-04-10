@@ -35,14 +35,51 @@ namespace Consultorio.Function
                 return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
             }
 
-            if (!FunctionsHelpers.UserHasPatientRole(user))
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["DOCTOR"]))
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
             }
 
 
-            var patients = await _consultorioDoctorService.GetPatientAllInfo(id);
+            var patients = await _consultorioDoctorService.GetDoctorAllInfoByDoctorId(id);
             if (patients == null)
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse(" not found.")) { StatusCode = StatusCodes.Status404NotFound };
+            }
+
+            return new OkObjectResult(patients);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred.");
+            return new ObjectResult(FunctionsHelpers.CreateErrorResponse("An unexpected error occurred.")) { StatusCode = StatusCodes.Status500InternalServerError };
+        }
+    }
+    
+      [Function("GetPaginatedDoctors")]
+        public async Task<IActionResult> getPaginatedPatient([HttpTrigger(AuthorizationLevel.Anonymous, "get", "post")] HttpRequest req, FunctionContext context)
+    {
+        try
+        {
+            var user = FunctionsHelpers.GetUserFromContext(context);
+            if (user == null)
+            {
+                return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
+            }
+
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["ADMIN"]))
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
+            }
+
+            var userParamsRequest = await FunctionsHelpers.DeserializeRequestBody<UserSearchParams>(req);
+            if (userParamsRequest == null)
+            {
+                return new BadRequestObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid request body."));
+            }
+
+            var patients = await _consultorioDoctorService.GetDoctorPaginated(userParamsRequest);
+            if (patients == null || !patients.Data.Any())
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Patients not found.")) { StatusCode = StatusCodes.Status404NotFound };
             }
@@ -55,10 +92,9 @@ namespace Consultorio.Function
             return new ObjectResult(FunctionsHelpers.CreateErrorResponse("An unexpected error occurred.")) { StatusCode = StatusCodes.Status500InternalServerError };
         }
     }
-    
- [Function("UpdateDoctor")]
+ [Function("UpdateDoctorProfile")]
     public async Task<IActionResult> UpdatePersonalInfo(
-        [HttpTrigger(AuthorizationLevel.Function, "put", Route = null)] HttpRequest req, FunctionContext context)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = null)] HttpRequest req, FunctionContext context)
     {
         
          try
@@ -69,18 +105,19 @@ namespace Consultorio.Function
                 return new UnauthorizedObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid Token."));
             }
 
-            if (!FunctionsHelpers.UserHasPatientRole(user))
+            if (!FunctionsHelpers.UserHasPatientRole(user, ["DOCTOR", "ADMIN"]))
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Only Admin can access")) { StatusCode = StatusCodes.Status403Forbidden };
             }
+         
 
-            var patient = await FunctionsHelpers.DeserializeRequestBody<PatientUpdateRequest>(req);
+            var patient = await FunctionsHelpers.DeserializeRequestBody<UserProfileRequest>(req);
             if (patient == null)
             {
                 return new BadRequestObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid request body."));
             }
 
-            var response = await _consultorioDoctorService.UpdatePatient(patient);
+            var response = await _consultorioDoctorService.UpdateDoctorProfile(patient);
             if (response.IsError)
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Personal info not exists")) { StatusCode = StatusCodes.Status404NotFound };
@@ -97,7 +134,7 @@ namespace Consultorio.Function
 
     [Function("CreateDoctor")]
     public async Task<IActionResult> CreateDoctor(
-        [HttpTrigger(AuthorizationLevel.Function, "put", Route = null)] HttpRequest req, FunctionContext context)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = null)] HttpRequest req, FunctionContext context)
     {
         
          try
@@ -121,6 +158,35 @@ namespace Consultorio.Function
 
             var response = await _consultorioDoctorService.CreateDoctor(patient);
             if (response.IsError)
+            {
+                return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Personal info not exists")) { StatusCode = StatusCodes.Status404NotFound };
+            }
+
+            return new OkObjectResult(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred.");
+            return new ObjectResult(FunctionsHelpers.CreateErrorResponse("An unexpected error occurred.")) { StatusCode = StatusCodes.Status500InternalServerError };
+        }
+    }
+    
+    [Function("GetDoctorAvailability")]
+    public async Task<IActionResult> DoctorAvailability(
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req)
+    {
+        
+         try
+        {
+
+            var doctor = await FunctionsHelpers.DeserializeRequestBody<DoctorAvailabilityRequest>(req);
+            if (doctor == null)
+            {
+                return new BadRequestObjectResult(FunctionsHelpers.CreateErrorResponse("Invalid request body."));
+            }
+
+            var response = await _consultorioDoctorService.GetDoctorAvailability(doctor);
+            if (response == null)
             {
                 return new ObjectResult(FunctionsHelpers.CreateErrorResponse("Personal info not exists")) { StatusCode = StatusCodes.Status404NotFound };
             }

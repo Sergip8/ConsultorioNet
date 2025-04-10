@@ -11,6 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 
+var functionsToSkipMiddleware = new HashSet<string>(["Chat"]);
 var host = new HostBuilder()
     .ConfigureAppConfiguration((context, config) =>
     {
@@ -30,8 +31,20 @@ var host = new HostBuilder()
     .ConfigureFunctionsWebApplication(app =>{
         app.UseWhen<JwtMiddleware>((context) =>
                     {
-                        return context.FunctionDefinition.InputBindings.Values
-                                      .First(a => a.Type.EndsWith("Trigger")).Type == "httpTrigger";
+                           var isHttpTrigger = context.FunctionDefinition.InputBindings.Values
+                                  .Any(a => a.Type.Equals("httpTrigger", StringComparison.OrdinalIgnoreCase));
+
+        if (!isHttpTrigger)
+        {
+            return false; // No es HTTP, no apliques el middleware
+        }
+
+        // Comprueba si el nombre de la función está en la lista de exclusión
+        var functionName = context.FunctionDefinition.Name;
+        var shouldSkip = functionsToSkipMiddleware.Contains(functionName);
+
+        // Aplica el middleware SÓLO si es HTTP y NO está en la lista de exclusión
+        return !shouldSkip;
                     });
     })
     .ConfigureServices((context, services) =>
@@ -53,11 +66,11 @@ var host = new HostBuilder()
                 JwtTokenName = Environment.GetEnvironmentVariable("JwtTokenName") ?? string.Empty,
                 SecretKey = Environment.GetEnvironmentVariable("SecretKey") ?? string.Empty,
                 Issuer = Environment.GetEnvironmentVariable("Issuer") ?? string.Empty,
-                ValidateIssuer = Convert.ToBoolean(Environment.GetEnvironmentVariable("ValidateIssuer")),
+                ValidateIssuer = Convert.ToBoolean(Environment.GetEnvironmentVariable("ValidateIssuer") ?? "false"),
                 Audience = Environment.GetEnvironmentVariable("Audience") ?? string.Empty,
-                ValidateAudience = Convert.ToBoolean(Environment.GetEnvironmentVariable("ValidateAudience")),
-                TokenExpirationInMinutes = Convert.ToInt32(Environment.GetEnvironmentVariable("TokenExpirationInMinutes")),
-                ValidateLifetime = Convert.ToBoolean(Environment.GetEnvironmentVariable("ValidateLifetime"))
+                ValidateAudience = Convert.ToBoolean(Environment.GetEnvironmentVariable("ValidateAudience") ?? "false"),
+                TokenExpirationInMinutes = Convert.ToInt32(Environment.GetEnvironmentVariable("TokenExpirationInMinutes") ?? "600"),
+                ValidateLifetime = Convert.ToBoolean(Environment.GetEnvironmentVariable("ValidateLifetime") ?? "false")
             };
         }
 
@@ -65,6 +78,11 @@ var host = new HostBuilder()
         {
             throw new InvalidOperationException("JwtSettings configuration is missing.");
         }
+        services.AddHttpClient("DeepSeekClient", client =>
+            {
+                client.BaseAddress = new Uri(Environment.GetEnvironmentVariable("DEEPSEEK_ENDPOINT"));
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+            });
 
         // Registra JwtSettings como un servicio singleton
         services.AddSingleton(jwtSettings);
