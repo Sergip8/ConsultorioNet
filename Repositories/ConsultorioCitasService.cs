@@ -145,7 +145,7 @@ public class ConsultorioCitasService: IConsultorioCitasService
         }
         catch (Exception ex)
         {
-            throw new Exception($"Error retrieving guests for reservation with ID: ", ex);
+            throw new Exception($"Error retrieving appointments: ", ex);
         }
         finally
         {
